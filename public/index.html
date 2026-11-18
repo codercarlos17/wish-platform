@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wish Platform: send a surprise</title>
+  <meta name="description" content="Create a personal digital wish with photos, videos, music and a private link you can send on WhatsApp.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%81%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/fonts.css">
+  <link rel="stylesheet" href="/chooser.css">
+</head>
+<body>
+  <main class="wrap">
+
+    <header class="hero">
+      <p class="brand">Wish Platform</p>
+      <h1>What are you celebrating?</h1>
+      <p class="lead">Pick an occasion. We set up the colors, music and message ideas.
+        You add your words, photos and videos, then send the private link on WhatsApp.</p>
+
+      <ol class="steps" aria-label="How it works">
+        <li><span>1</span> Choose an occasion</li>
+        <li><span>2</span> Add your message and photos</li>
+        <li><span>3</span> Share the link</li>
+      </ol>
+    </header>
+
+    <!-- The cards are built by chooser.js from /api/templates -->
+    <section id="grid" class="grid" aria-live="polite">
+      <p class="loading">Loading occasions...</p>
+    </section>
+
+    <noscript>
+      <p class="loading">Pick an occasion:
+        <a href="/create/birthday">Birthday</a> ·
+        <a href="/create/anniversary">Anniversary</a> ·
+        <a href="/create/graduation">Graduation</a> ·
+        <a href="/create/thankyou">Thank You</a></p>
+    </noscript>
+
+    <!-- Tell us what to build next -->
+    <section class="request">
+      <h2>Don't see your occasion?</h2>
+      <p>Tell us what you would like to celebrate, and we will think about adding it.</p>
+      <form id="requestForm" class="request-form" novalidate>
+        <input type="text" id="requestText" maxlength="100" placeholder="e.g. Eid, Wedding, Mother's Day" aria-label="Occasion you would like">
+        <button type="submit">Send</button>
+      </form>
+      <p id="requestMsg" class="request-msg" role="status" hidden></p>
+    </section>
+
+  </main>
+  <script src="/chooser.js"></script>
+</body>
+</html>

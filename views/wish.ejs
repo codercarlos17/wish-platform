@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>A surprise for <%= wish.recipientName %></title>
+
+  <!-- What WhatsApp and other apps show when the link is pasted into a chat.
+       We deliberately do NOT put the private message in here. -->
+  <meta property="og:title" content="A surprise for <%= wish.recipientName %>">
+  <meta property="og:description" content="Tap to open your surprise.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="<%= wish.bgColor %>">
+  <!-- A little gift as the tab icon (also stops the browser asking for /favicon.ico) -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%81%3C/text%3E%3C/svg%3E">
+
+  <!-- Tell the CSS that JavaScript is running, so photos can wait for their
+       scroll-in animation. Without JS they are simply visible. -->
+  <script>document.documentElement.className += ' js';</script>
+  <link rel="stylesheet" href="/fonts.css">
+  <link rel="stylesheet" href="/wish.css">
+</head>
+<%#
+  EJS comment (never sent to the browser).
+
+  The "equals" tag (percent-equals) prints a value AND escapes it, so if
+  someone typed a script tag in their message it shows as harmless text.
+  Never use the "dash" (unescaped) tag for anything a user typed.
+
+  The two colors were validated as #rrggbb when the wish was created, so
+  they are safe to put into the style attribute. Every other color on this
+  page (the accents) is calculated in wish.css from these two, so ANY
+  colors the sender picks still look designed.
+%>
+<body class="<%= isExample ? 'is-example' : '' %>" data-theme="<%= templateId %>" data-decoration="<%= template.decoration %>" style="--bg: <%= wish.bgColor %>; --text: <%= wish.textColor %>;">
+
+  <!-- Reusable little shapes. <use href="#sparkle"> draws one anywhere. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="sparkle" viewBox="0 0 24 24"><path d="M12 0C13 8 16 11 24 12 16 13 13 16 12 24 11 16 8 13 0 12 8 11 11 8 12 0Z"/></symbol>
+    <symbol id="flower" viewBox="0 0 24 24"><circle cx="12" cy="5.6" r="4.3"/><circle cx="18.3" cy="10.2" r="4.3"/><circle cx="15.9" cy="17.6" r="4.3"/><circle cx="8.1" cy="17.6" r="4.3"/><circle cx="5.7" cy="10.2" r="4.3"/><circle cx="12" cy="12" r="3.2" style="fill:var(--a3)"/></symbol>
+    <symbol id="heart" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></symbol>
+  </svg>
+
+  <!-- Floating confetti behind the card (filled in by wish.js) -->
+  <div id="sky" class="sky" aria-hidden="true"></div>
+
+  <!-- THE PAD: two "sheets" peek out from behind it (see .pad::before/::after) -->
+  <div class="pad">
+    <div class="sheet">
+
+      <!-- The garland along the top edge. Its style comes from the occasion:
+           bunting = party flags, hearts, stars, flowers (see wish.css). -->
+      <div class="garland deco-<%= template.decoration %>" aria-hidden="true">
+        <% var shape = { bunting: '', hearts: 'heart', stars: 'sparkle', flowers: 'flower' }[template.decoration]; %>
+        <% for (var f = 0; f < 12; f++) { %><span><% if (shape) { %><svg><use href="#<%= shape %>"/></svg><% } %></span><% } %>
+      </div>
+
+      <!-- Step 1: the cover. Shown first. -->
+      <section id="cover" class="cover">
+        <div class="stitch">
+          <svg class="sp" style="--w:26px; top:14%; left:9%; --c:var(--a1); --d:0s"><use href="#sparkle"/></svg>
+          <svg class="sp" style="--w:18px; top:22%; right:12%; --c:var(--a3); --d:.7s"><use href="#sparkle"/></svg>
+          <svg class="sp" style="--w:14px; top:52%; left:7%; --c:var(--a3); --d:1.3s"><use href="#sparkle"/></svg>
+          <svg class="sp" style="--w:22px; bottom:20%; right:9%; --c:var(--a1); --d:.4s"><use href="#sparkle"/></svg>
+          <svg class="sp" style="--w:12px; bottom:12%; left:18%; --c:var(--a2); --d:1s"><use href="#sparkle"/></svg>
+
+          <%# The picture on the cover changes with the occasion (template.icon). %>
+          <svg class="cover-icon icon-<%= template.icon %>" viewBox="0 0 120 120" aria-hidden="true">
+            <ellipse class="c-shadow" cx="60" cy="111" rx="34" ry="5"/>
+            <% if (template.icon === 'heart') { %>
+              <path class="c-main" d="M60 104C22 76 12 52 24 34c10-14 28-12 36 2 8-14 26-16 36-2 12 18 2 42-36 70z"/>
+              <path class="c-shine" d="M32 44c2-8 8-12 15-11" fill="none" stroke-width="5" stroke-linecap="round"/>
+              <path class="c-accent" d="M88 24l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/>
+            <% } else if (template.icon === 'cap') { %>
+              <path class="c-base" d="M28 58v22c0 10 64 10 64 0V58L60 70z"/>
+              <path class="c-main" d="M60 26L112 48 60 70 8 48z"/>
+              <path class="c-string" d="M104 52v30" fill="none" stroke-width="3.5" stroke-linecap="round"/>
+              <circle class="c-accent" cx="104" cy="86" r="6"/>
+              <path class="c-shine" d="M60 34L96 49" fill="none" stroke-width="3" stroke-linecap="round"/>
+            <% } else if (template.icon === 'flower') { %>
+              <path class="c-stem" d="M60 66v42" fill="none" stroke-width="5" stroke-linecap="round"/>
+              <path class="c-leaf" d="M60 92C46 92 38 84 36 74c12 0 22 5 24 18zM60 98c12 0 20-6 24-16-12-1-22 4-24 16z"/>
+              <circle class="c-petal" cx="60" cy="26" r="17"/>
+              <circle class="c-petal2" cx="84" cy="43" r="17"/>
+              <circle class="c-petal" cx="75" cy="70" r="17"/>
+              <circle class="c-petal2" cx="45" cy="70" r="17"/>
+              <circle class="c-petal" cx="36" cy="43" r="17"/>
+              <circle class="c-accent" cx="60" cy="50" r="15"/>
+            <% } else { %>
+              <rect class="c-main" x="20" y="56" width="80" height="52" rx="8"/>
+              <rect class="c-lid" x="14" y="40" width="92" height="22" rx="8"/>
+              <rect class="c-ribbon" x="53" y="40" width="14" height="68"/>
+              <path class="c-ribbon" d="M60 40C48 40 32 36 34 25 36 14 52 18 60 40ZM60 40C72 40 88 36 86 25 84 14 68 18 60 40Z"/>
+              <circle class="c-knot" cx="60" cy="40" r="6"/>
+            <% } %>
+          </svg>
+
+          <p class="cover-small"><%= template.coverLine %></p>
+          <h1 class="cover-name<%= wish.recipientName.length > 22 ? ' xlong' : wish.recipientName.length > 12 ? ' long' : '' %>"><%= wish.recipientName %></h1>
+          <svg class="squig" viewBox="0 0 200 12" aria-hidden="true"><path d="M2 6Q14-2 26 6T50 6T74 6T98 6T122 6T146 6T170 6T198 6"/></svg>
+
+          <button id="openBtn" class="open-btn" type="button"><span>Open Surprise</span></button>
+          <p class="cover-hint">tap to open</p>
+        </div>
+      </section>
+
+      <!-- Step 2: the content. Hidden until the button is pressed. -->
+      <main id="surprise" class="surprise" hidden>
+
+        <header class="head">
+          <svg class="sp" style="--w:22px; top:6px; left:8%; --c:var(--a1); --d:0s"><use href="#sparkle"/></svg>
+          <svg class="sp" style="--w:15px; top:34px; right:10%; --c:var(--a3); --d:.8s"><use href="#sparkle"/></svg>
+          <h1 class="to">
+            <span class="to-dear">Dear</span>
+            <span class="to-name<%= wish.recipientName.length > 22 ? ' xlong' : wish.recipientName.length > 12 ? ' long' : '' %>"><%= wish.recipientName %>,</span>
+          </h1>
+          <svg class="squig" viewBox="0 0 200 12" aria-hidden="true"><path d="M2 6Q14-2 26 6T50 6T74 6T98 6T122 6T146 6T170 6T198 6"/></svg>
+        </header>
+
+        <!-- The message, written on lined note paper.
+             Keep the <p> on ONE line: white-space is "pre-wrap" so the
+             sender's own line breaks show, and any extra spaces here would too. -->
+        <div class="note">
+          <p class="message"><%= wish.message %></p>
+        </div>
+
+        <% if (wish.media.length) { %>
+          <div class="divider" aria-hidden="true">
+            <svg><use href="#sparkle"/></svg><svg class="h"><use href="#heart"/></svg><svg><use href="#sparkle"/></svg>
+          </div>
+
+          <!-- Photos and videos: four frame styles, repeated in turn
+               (p0 polaroid, p1 arch, p2 taped polaroid, p3 sticker frame) -->
+          <section class="gallery">
+            <% wish.media.forEach(function (item, i) { %>
+              <figure class="photo p<%= i % 4 %><%= item.type === 'video' ? ' is-video' : '' %>" style="--d: <%= (i % 3) * 0.1 %>s">
+                <span class="tape t1" aria-hidden="true"></span>
+                <span class="tape t2" aria-hidden="true"></span>
+                <svg class="sticker" aria-hidden="true"><use href="#sparkle"/></svg>
+                <div class="frame">
+                  <% if (item.type === 'video') { %>
+                    <video src="<%= item.url %>" controls playsinline preload="metadata"></video>
+                  <% } else { %>
+                    <img src="<%= item.url %>" alt="Photo <%= i + 1 %> of <%= wish.media.length %>" loading="lazy">
+                  <% } %>
+                </div>
+                <figcaption aria-hidden="true"><svg><use href="#heart"/></svg></figcaption>
+              </figure>
+            <% }) %>
+          </section>
+        <% } %>
+
+        <% if (wish.senderName) { %>
+          <p class="from">
+            <span class="from-small"><%= template.signOff %></span>
+            <span class="from-name<%= wish.senderName.length > 22 ? ' xlong' : wish.senderName.length > 12 ? ' long' : '' %>"><%= wish.senderName %></span>
+            <svg class="from-heart" aria-hidden="true"><use href="#heart"/></svg>
+          </p>
+        <% } %>
+
+        <p class="make-own"><a href="/">Make a wish of your own</a></p>
+      </main>
+
+    </div>
+  </div>
+
+  <%# Background music. It only STARTS after the "Open Surprise" tap: browsers
+      block sound until the person has tapped something. %>
+  <% if (trackFile) { %>
+    <audio id="music" src="<%= trackFile %>" loop preload="none"></audio>
+    <button id="musicBtn" class="music-btn" type="button" aria-label="Turn the music off" aria-pressed="true" hidden>
+      <svg class="ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3z"/><path d="M15.5 8.5a5 5 0 010 7M18 6a8.500 8.500 0 010 12" fill="none" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg class="ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3z"/><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  <% } %>
+
+  <% if (isExample) { %>
+    <!-- Only on /example/<occasion>: a bar that leads to the builder -->
+    <div class="example-bar">
+      <span>This is an example</span>
+      <a href="/create/<%= templateId %>">Use this template</a>
+    </div>
+  <% } %>
+
+  <script src="/wish.js"></script>
+</body>
+</html>

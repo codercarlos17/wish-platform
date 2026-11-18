@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create a wish</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%81%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/fonts.css">
+  <link rel="stylesheet" href="/builder.css">
+</head>
+<body>
+  <div class="layout">
+
+    <!-- LEFT: the form (the same file is used for every occasion;
+         builder.js reads the occasion from the address, e.g. /create/birthday) -->
+    <form id="wishForm" class="controls" novalidate>
+      <a class="back" href="/">&larr; Change occasion</a>
+      <h1 id="formTitle">Create a wish</h1>
+      <p id="formTagline" class="tagline" hidden></p>
+
+      <label>Recipient name
+        <input type="text" id="recipientName" maxlength="80" placeholder="Amina" required>
+      </label>
+
+      <label>Your name
+        <input type="text" id="senderName" maxlength="80" placeholder="Carlos">
+      </label>
+
+      <label>Message
+        <textarea id="message" rows="5" maxlength="2000" required></textarea>
+      </label>
+
+      <div class="ideas" id="ideasBox" hidden>
+        <p class="ideas-title">Need ideas? Tap one to use it:</p>
+        <div id="ideas" class="chips"></div>
+      </div>
+
+      <div class="colors">
+        <label>Background
+          <input type="color" id="bgColor" value="#ffe4e1">
+        </label>
+        <label>Text color
+          <input type="color" id="textColor" value="#333333">
+        </label>
+      </div>
+
+      <div class="field">
+        <label for="track" class="field-label">Music</label>
+        <div class="music-row">
+          <select id="track"><option value="">No music</option></select>
+          <button type="button" id="previewMusic" class="mini">&#9654; Play</button>
+        </div>
+        <p class="hint">Plays when the person taps "Open Surprise". They can mute it.</p>
+      </div>
+
+      <label>Photos and videos (up to 10)
+        <input type="file" id="media" accept="image/*,video/*" multiple>
+      </label>
+      <ul id="fileList" class="file-list"></ul>
+
+      <p id="error" class="error" role="alert" hidden></p>
+      <button type="submit" id="submitBtn">Create wish</button>
+
+      <!-- Shown after the wish is created -->
+      <div id="result" class="result" hidden>
+        <p>Your wish is ready! Share this link:</p>
+        <input type="text" id="linkBox" readonly>
+        <div class="result-actions">
+          <button type="button" id="copyBtn">Copy link</button>
+          <a id="whatsappBtn" target="_blank" rel="noopener">Share on WhatsApp</a>
+          <a id="openLink" target="_blank" rel="noopener">Open page</a>
+        </div>
+      </div>
+    </form>
+
+    <!-- RIGHT: the live preview -->
+    <section id="preview" class="preview">
+      <span id="pvEmoji" class="pv-emoji" aria-hidden="true"></span>
+      <h2 id="pvTo">Dear friend,</h2>
+      <p id="pvMessage"></p>
+      <div id="pvGallery" class="pv-gallery"></div>
+      <p id="pvFrom" class="pv-from"></p>
+    </section>
+
+  </div>
+  <script src="/builder.js"></script>
+</body>
+</html>

@@ -1,0 +1,439 @@
+/*
+  WISH PAGE (what the recipient sees)  -  views/wish.ejs + public/wish.js
+
+  THE IDEA
+  The sender picks only TWO colors: --bg and --text (set on <body>).
+  Everything else is calculated from them:
+    --a1  accent: the bg hue turned one way
+    --a2  accent: the bg hue turned the other way
+    --a3  accent: the opposite hue (the "pop" color)
+  So a pink wish gets pink + peach + mint accents, a navy wish gets navy +
+  violet + gold accents, and nothing needs to be designed by hand.
+
+  THE LOOK
+  A paper greeting-card "pad" floating on a colorful backdrop, with flags,
+  tape, stickers and handwriting, instead of a plain full-screen web page.
+*/
+
+/* The fonts themselves are declared in fonts.css (linked before this file). */
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+/* ---------- Colors ---------- */
+body {
+  /* Fallback accents for older browsers (simple mixes of the bg). */
+  --a1: color-mix(in srgb, var(--bg) 35%, #ff6fa8);
+  --a2: color-mix(in srgb, var(--bg) 35%, #6fb7ff);
+  --a3: color-mix(in srgb, var(--bg) 35%, #ffc857);
+
+  --font-script: 'Dancing Script', 'Segoe Script', 'Brush Script MT', cursive;
+  --font-hand: 'Caveat', 'Segoe Print', 'Bradley Hand', cursive;
+  --font-ui: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Light paper used for polaroid frames, whatever the bg is. */
+  --paper: color-mix(in srgb, white 90%, var(--bg));
+  --ink: #3b3340;
+
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  font-family: var(--font-hand);
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+
+  /* Plain base color; the decorated backdrop sits on top of it (body::before). */
+  background: color-mix(in oklab, var(--bg) 55%, var(--a2));
+}
+
+/* The backdrop: soft color glows + tiny dots over a gradient of the accents.
+   It is its own fixed layer, so it always covers the screen however long the card is. */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -1;
+  background:
+    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--a1) 70%, transparent) 0, transparent 38%),
+    radial-gradient(circle at 92% 22%, color-mix(in srgb, var(--a3) 60%, transparent) 0, transparent 34%),
+    radial-gradient(circle at 18% 92%, color-mix(in srgb, var(--a2) 65%, transparent) 0, transparent 40%),
+    radial-gradient(rgba(255, 255, 255, 0.28) 1.4px, transparent 1.6px) 0 0 / 24px 24px,
+    linear-gradient(160deg, color-mix(in oklab, var(--bg) 55%, var(--a2)), color-mix(in oklab, var(--bg) 50%, var(--a1)));
+}
+
+/* Modern browsers: calculate real accents by turning the bg hue.
+   (hsl(from ...) is "relative color syntax".) */
+@supports (color: hsl(from red h s l)) {
+  body {
+    --a1: hsl(from var(--bg) calc(h + 38) clamp(50, calc(s + 22), 92) clamp(48, calc(l - 14), 72));
+    --a2: hsl(from var(--bg) calc(h - 42) clamp(50, calc(s + 22), 92) clamp(50, calc(l - 12), 74));
+    --a3: hsl(from var(--bg) calc(h + 180) clamp(55, calc(s + 25), 95) clamp(55, calc(l - 8), 78));
+  }
+}
+
+/* ---------- Floating confetti behind the card ---------- */
+.sky { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.confetti {
+  position: absolute; top: 0; left: var(--x);
+  width: var(--s); height: calc(var(--s) * 1.7);
+  background: var(--c); border-radius: 2px; opacity: 0.85;
+  animation: fall var(--dur) linear var(--delay) infinite;
+}
+.confetti.dot { height: var(--s); border-radius: 50%; }
+@keyframes fall {
+  from { transform: translate3d(0, -12vh, 0) rotate(0deg); }
+  to   { transform: translate3d(var(--sway), 112vh, 0) rotate(var(--rot)); }
+}
+
+/* ---------- The pad ---------- */
+.pad {
+  position: relative; z-index: 1; isolation: isolate;
+  width: min(100% - 28px, 480px);
+  margin: 30px auto 56px;
+  animation: padIn 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+/* Two sheets peeking out from behind = it feels like a pad of paper.
+   They are at most 460px tall and sit at the bottom: if they were as tall as a
+   long card, even a tiny tilt would swing their ends far out to the sides. */
+.pad::before, .pad::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: min(100%, 460px);
+  z-index: -1; border-radius: 30px;
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.35);
+}
+.pad::before { background: color-mix(in srgb, var(--a1) 55%, white); transform: rotate(-2deg) translate(-5px, 8px); }
+.pad::after  { background: color-mix(in srgb, var(--a2) 55%, white); transform: rotate(1.8deg) translate(6px, 12px); }
+
+.sheet {
+  position: relative;
+  border-radius: 30px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 34%), var(--bg);
+  box-shadow: 0 34px 60px -22px rgba(20, 10, 40, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+  overflow-x: clip;
+  padding-top: 38px; /* room for the flags */
+}
+
+@keyframes padIn { from { opacity: 0; transform: translateY(30px) scale(0.96); } to { opacity: 1; transform: none; } }
+
+/* ---------- Garland along the top (flags, hearts, stars or flowers) ---------- */
+.garland {
+  position: absolute; top: 0; left: 0; right: 0; height: 40px;
+  display: flex; gap: 3px; padding: 6px 8px 0;
+  border-radius: 30px 30px 0 0;
+}
+.garland::before { /* the string */
+  content: ''; position: absolute; top: 5px; left: 8px; right: 8px; height: 2px;
+  background: color-mix(in srgb, var(--text) 35%, transparent); border-radius: 2px;
+}
+.garland span {
+  flex: 1; height: 30px; margin-top: 2px;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  background: var(--a1);
+  transform-origin: 50% 0;
+  animation: sway 3.6s ease-in-out infinite;
+}
+.garland span:nth-child(4n + 2) { background: var(--a3); animation-delay: -0.9s; }
+.garland span:nth-child(4n + 3) { background: var(--a2); animation-delay: -1.8s; }
+.garland span:nth-child(4n + 4) { background: color-mix(in srgb, var(--a1) 55%, white); animation-delay: -2.7s; }
+@keyframes sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+
+/* ---------- Sparkle stickers ---------- */
+.sp { position: absolute; width: var(--w); height: var(--w); fill: var(--c); animation: twinkle 2.6s ease-in-out var(--d) infinite; pointer-events: none; }
+@keyframes twinkle { 0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; } 50% { transform: scale(0.55) rotate(20deg); opacity: 0.55; } }
+
+/* ---------- Squiggle underline ---------- */
+.squig { display: block; width: 58%; max-width: 220px; height: 12px; margin: 4px auto 0; }
+.squig path { fill: none; stroke: var(--a1); stroke-width: 3.5; stroke-linecap: round; }
+
+/* =====================  COVER  ===================== */
+.cover { padding: 6px 16px 22px; animation: rise 0.8s ease both; }
+.cover.closing { animation: coverOut 0.45s ease forwards; }
+@keyframes coverOut { to { opacity: 0; transform: scale(0.94) translateY(-10px); } }
+
+.stitch {
+  position: relative; display: flex; flex-direction: column; align-items: center; text-align: center;
+  min-height: min(74vh, 540px); justify-content: center;
+  padding: 34px 18px 30px;
+  border: 2.5px dashed color-mix(in srgb, var(--text) 32%, transparent);
+  border-radius: 22px;
+}
+
+.cover-icon { width: 112px; height: 112px; margin-bottom: 6px; animation: bob 2.8s ease-in-out infinite; overflow: visible; }
+.cover-icon .c-shadow { fill: rgba(0, 0, 0, 0.16); }
+/* gift (birthday) */
+.icon-gift .c-main { fill: var(--a1); }
+.icon-gift .c-lid { fill: var(--a2); }
+.icon-gift .c-ribbon { fill: var(--a3); }
+.icon-gift .c-knot { fill: color-mix(in srgb, var(--a3) 65%, white); }
+/* heart (anniversary) */
+.icon-heart .c-main { fill: var(--a2); }
+.icon-heart .c-shine { stroke: rgba(255, 255, 255, 0.75); }
+.icon-heart .c-accent { fill: var(--a3); }
+/* graduation cap */
+.icon-cap .c-main { fill: var(--text); }
+.icon-cap .c-base { fill: color-mix(in srgb, var(--text) 78%, var(--a2)); }
+.icon-cap .c-string { stroke: var(--a3); }
+.icon-cap .c-accent { fill: var(--a3); }
+.icon-cap .c-shine { stroke: rgba(255, 255, 255, 0.35); }
+/* flower (thank you) */
+.icon-flower .c-petal { fill: var(--a2); }
+.icon-flower .c-petal2 { fill: var(--a1); }
+.icon-flower .c-accent { fill: var(--a3); }
+.icon-flower .c-stem { stroke: color-mix(in srgb, #3f8f55 75%, var(--bg)); }
+.icon-flower .c-leaf { fill: color-mix(in srgb, #3f8f55 75%, var(--bg)); }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-8px) rotate(2deg); } }
+
+.cover-small {
+  margin: 10px 0 0; font-family: var(--font-ui); font-weight: 800;
+  font-size: 0.82rem; letter-spacing: 0.22em; text-transform: uppercase; opacity: 0.8;
+}
+
+/* Name: big script, with a color sweep through the accent. */
+.cover-name, .to-name, .from-name {
+  font-family: var(--font-script); font-weight: 700;
+  background: linear-gradient(100deg, var(--text) 0%, color-mix(in srgb, var(--text) 40%, var(--a1)) 50%, var(--text) 100%);
+  background-size: 220% auto;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  animation: shimmer 6s linear infinite;
+  overflow-wrap: anywhere;
+}
+@supports not ((background-clip: text) or (-webkit-background-clip: text)) {
+  .cover-name, .to-name, .from-name { color: var(--text); -webkit-text-fill-color: currentColor; }
+}
+@keyframes shimmer { to { background-position: -220% center; } }
+
+.cover-name {
+  margin: 2px 0 0; font-size: clamp(3rem, 15vw, 4.7rem); line-height: 1.12;
+  padding: 0 4px 6px; /* script letters have long tails; stop the clip from cutting them */
+  filter: drop-shadow(0 2px 0 color-mix(in srgb, var(--a3) 65%, transparent));
+}
+
+.open-btn {
+  position: relative; overflow: hidden; margin-top: 26px;
+  font-family: var(--font-ui); font-weight: 800; font-size: 1.1rem; letter-spacing: 0.02em;
+  padding: 1rem 2.5rem; border: 0; border-radius: 999px; cursor: pointer;
+  color: var(--bg);
+  background: linear-gradient(120deg, var(--text), color-mix(in srgb, var(--text) 70%, var(--a1)));
+  box-shadow: 0 6px 0 var(--a1), 0 16px 26px -6px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+.open-btn span { position: relative; z-index: 1; }
+.open-btn::after { /* a shine that sweeps across */
+  content: ''; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-20deg); animation: shine 3.2s ease-in-out infinite;
+}
+.open-btn:hover { transform: translateY(-2px); }
+.open-btn:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--a1), 0 6px 12px -4px rgba(0, 0, 0, 0.35); animation: none; }
+.open-btn:focus-visible { outline: 3px solid var(--a3); outline-offset: 4px; }
+@keyframes pulse { 0%, 100% { scale: 1; } 50% { scale: 1.05; } }
+@keyframes shine { 0% { left: -60%; } 55%, 100% { left: 130%; } }
+
+.cover-hint { margin: 16px 0 0; font-size: 1.25rem; opacity: 0.7; }
+
+/* =====================  OPENED CARD  ===================== */
+.surprise { padding: 8px 20px 26px; }
+.reveal { animation: rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+
+.head { position: relative; text-align: center; padding-top: 14px; }
+.to { margin: 0; line-height: 1; }
+.to-dear { display: block; font-family: var(--font-hand); font-size: 1.7rem; opacity: 0.85; }
+.to-name { display: inline-block; font-size: clamp(2.8rem, 13vw, 4.1rem); line-height: 1.15; padding: 0 4px 6px; max-width: 100%; }
+
+/* ----- The message on lined note paper ----- */
+.note {
+  position: relative; margin: 24px 0 8px; padding: 30px 18px 12px 24px;
+  border-radius: 8px 20px 20px 8px;
+  background: color-mix(in srgb, white 16%, var(--bg));
+  border-left: 5px solid var(--a1);
+  box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  transform: rotate(-0.6deg);
+}
+.note::before { /* big opening quote mark */
+  content: '\201C'; position: absolute; top: -4px; left: 12px;
+  font-family: Georgia, 'Times New Roman', serif; font-size: 5rem; line-height: 1; color: var(--a1); opacity: 0.95;
+}
+.message {
+  position: relative; margin: 0;
+  font-family: var(--font-hand); font-weight: 600; font-size: 1.62rem; line-height: 2.1rem;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+  /* faint ruled lines that line up with the text */
+  background: repeating-linear-gradient(transparent 0, transparent calc(2.1rem - 1.5px), color-mix(in srgb, var(--text) 16%, transparent) calc(2.1rem - 1.5px), color-mix(in srgb, var(--text) 16%, transparent) 2.1rem);
+  background-position: 0 0.35rem;
+}
+.message::first-letter { font-size: 2.2rem; color: color-mix(in srgb, var(--a2) 55%, var(--text)); }
+
+/* ----- Divider ----- */
+.divider { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 30px 0 26px; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 0; border-top: 2.5px dotted color-mix(in srgb, var(--text) 35%, transparent); }
+.divider svg { width: 20px; height: 20px; fill: var(--a3); animation: twinkle 2.6s ease-in-out infinite; }
+.divider svg.h { fill: var(--a1); width: 22px; height: 22px; animation: beat 1.6s ease-in-out infinite; }
+@keyframes beat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.25); } 30% { transform: scale(1); } 45% { transform: scale(1.18); } }
+
+/* =====================  PHOTOS & VIDEOS  ===================== */
+.gallery { display: flex; flex-direction: column; gap: 40px; padding: 8px 4px 6px; }
+
+.photo { position: relative; margin: 0; --rot: 0deg; transform: rotate(var(--rot)); }
+.photo .frame { position: relative; overflow: hidden; background: rgba(0, 0, 0, 0.1); }
+.photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.photo video { display: block; width: 100%; max-height: 72vh; background: #000; }
+.photo figcaption { display: none; }
+.photo .tape, .photo .sticker { display: none; position: absolute; z-index: 3; }
+
+/* Slow zoom on photos once they are on screen, like a video "Ken Burns" move. */
+.photo.in:not(.is-video) img { animation: kenburns 11s ease-in-out infinite alternate; }
+@keyframes kenburns { from { transform: scale(1.02); } to { transform: scale(1.12) translate(-1.5%, -1%); } }
+
+/* Washi tape (used by p0 and p2) */
+.photo .tape {
+  width: 92px; height: 28px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.4) 0 6px, transparent 6px 12px),
+    color-mix(in srgb, var(--a3) 72%, transparent);
+  clip-path: polygon(0 0, 100% 0, 97% 25%, 100% 50%, 97% 75%, 100% 100%, 0 100%, 3% 75%, 0 50%, 3% 25%);
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.25));
+}
+
+/* Sticker star (used by p1 and p3) */
+.photo .sticker { width: 46px; height: 46px; fill: var(--a3); stroke: #fff; stroke-width: 1.5px; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.3)); animation: twinkle 3s ease-in-out infinite; }
+
+/* ---- p0: classic polaroid, leaning left, one piece of tape ---- */
+.p0 { --rot: -3deg; width: 90%; margin-right: auto; }
+.p0 .frame { aspect-ratio: 1 / 1; }
+.p0 { background: var(--paper); padding: 12px 12px 0; border-radius: 6px; box-shadow: 0 16px 28px -12px rgba(0, 0, 0, 0.5); }
+.p0 figcaption, .p2 figcaption { display: flex; align-items: center; justify-content: center; height: 54px; }
+.p0 figcaption svg, .p2 figcaption svg { width: 22px; height: 22px; fill: var(--a1); }
+.p0 .t1 { display: block; top: -14px; left: 50%; margin-left: -46px; transform: rotate(-4deg); }
+
+/* ---- p1: arch window with a colored ring and a sticker ---- */
+.p1 { --rot: 2deg; width: 80%; margin-left: auto; }
+.p1 .frame {
+  aspect-ratio: 4 / 5; border-radius: 999px 999px 22px 22px;
+  border: 7px solid var(--paper);
+  box-shadow: 0 0 0 6px var(--a1), 0 20px 32px -12px rgba(0, 0, 0, 0.5);
+}
+.p1 .sticker { display: block; top: -8px; right: -12px; transform: rotate(14deg); }
+
+/* ---- p2: taller polaroid, leaning right, tape on both corners ---- */
+.p2 { --rot: 3deg; width: 86%; margin: 0 auto; background: var(--paper); padding: 12px 12px 0; border-radius: 6px; box-shadow: 0 16px 28px -12px rgba(0, 0, 0, 0.5); }
+.p2 .frame { aspect-ratio: 4 / 5; }
+.p2 .t1 { display: block; top: -12px; left: -26px; transform: rotate(-38deg); width: 80px; }
+.p2 .t2 { display: block; top: -12px; right: -26px; transform: rotate(38deg); width: 80px; }
+
+/* ---- p3: rounded frame with a gradient border and a sticker ---- */
+.p3 { --rot: -1.6deg; width: 92%; margin: 0 auto; }
+.p3 .frame {
+  aspect-ratio: 1 / 1; border-radius: 30px; border: 6px solid transparent;
+  background: linear-gradient(var(--bg), var(--bg)) padding-box, linear-gradient(135deg, var(--a1), var(--a3), var(--a2)) border-box;
+  box-shadow: 0 18px 30px -14px rgba(0, 0, 0, 0.5);
+}
+.p3 .frame img, .p3 .frame video { border-radius: 24px; }
+.p3 .sticker { display: block; bottom: -14px; left: -10px; transform: rotate(-12deg); width: 52px; height: 52px; fill: var(--a1); }
+
+/* Videos keep their own shape so nothing is cropped. */
+.photo.is-video .frame { aspect-ratio: auto; }
+.p0.is-video .frame, .p2.is-video .frame { background: #000; }
+
+/* Scroll-in: photos pop up and settle into their tilt (only when JS is on). */
+.js .photo {
+  opacity: 0;
+  transform: translateY(48px) rotate(calc(var(--rot) * 2.6)) scale(0.9);
+  transition: opacity 0.7s ease var(--d), transform 0.95s cubic-bezier(0.2, 0.85, 0.25, 1.15) var(--d);
+}
+.js .photo.in { opacity: 1; transform: rotate(var(--rot)); }
+
+/* =====================  SIGN-OFF  ===================== */
+.from { position: relative; margin: 38px 0 0; text-align: center; }
+.from-small { display: block; font-size: 1.7rem; opacity: 0.85; }
+.from-name { display: inline-block; font-size: clamp(2.3rem, 11vw, 3.2rem); line-height: 1.2; padding: 0 4px 6px; max-width: 100%; }
+.from-heart { display: block; width: 26px; height: 26px; margin: 2px auto 0; fill: var(--a1); animation: beat 1.6s ease-in-out infinite; }
+
+.make-own { margin: 30px 0 0; text-align: center; font-family: var(--font-ui); font-weight: 700; font-size: 0.82rem; }
+.make-own a { color: inherit; opacity: 0.65; text-decoration: underline dotted; text-underline-offset: 4px; }
+.make-own a:hover { opacity: 1; }
+
+
+/* Garland styles for the other occasions: little shapes hang on the string. */
+.garland.deco-hearts span:nth-child(n), .garland.deco-stars span:nth-child(n), .garland.deco-flowers span:nth-child(n) {
+  clip-path: none; background: none; animation-name: sway; height: 30px; margin-top: 4px;
+  display: flex; align-items: flex-start; justify-content: center;
+}
+.garland span svg { width: 100%; max-width: 26px; height: 26px; fill: var(--a1); filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.18)); }
+.garland span:nth-child(4n + 2) svg { fill: var(--a3); }
+.garland span:nth-child(4n + 3) svg { fill: var(--a2); }
+.garland span:nth-child(4n + 4) svg { fill: color-mix(in srgb, var(--a1) 55%, white); }
+
+/* Confetti shapes (hearts, sparkles, petals). Colors come from --c as before. */
+.confetti.heart, .piece.heart, .confetti.spark, .piece.spark {
+  width: calc(var(--s) * 1.8); height: calc(var(--s) * 1.8); border-radius: 0;
+  -webkit-mask: var(--mask) center / contain no-repeat; mask: var(--mask) center / contain no-repeat;
+}
+.confetti.heart, .piece.heart { --mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E"); }
+.confetti.spark, .piece.spark { --mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C13 8 16 11 24 12 16 13 13 16 12 24 11 16 8 13 0 12 8 11 11 8 12 0Z'/%3E%3C/svg%3E"); }
+.confetti.petal, .piece.petal { width: calc(var(--s) * 1.3); height: calc(var(--s) * 1.3); border-radius: 50% 0 50% 0; }
+
+/* ---------- Music button ---------- */
+.music-btn {
+  position: fixed; z-index: 40; bottom: max(16px, env(safe-area-inset-bottom)); right: max(14px, calc(50vw - 226px));
+  width: 50px; height: 50px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center;
+  background: var(--text); color: var(--bg);
+  box-shadow: 0 4px 0 var(--a1), 0 12px 22px -6px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease;
+}
+.music-btn:hover { transform: translateY(-2px); }
+.music-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--a1), 0 6px 12px -4px rgba(0, 0, 0, 0.4); }
+.music-btn:focus-visible { outline: 3px solid var(--a3); outline-offset: 3px; }
+.music-btn svg { width: 26px; height: 26px; fill: var(--bg); stroke: var(--bg); }
+.music-btn .ic-off { display: none; }
+.music-btn[aria-pressed='false'] .ic-on { display: none; }
+.music-btn[aria-pressed='false'] .ic-off { display: block; }
+.music-btn.playing::after { /* a soft ring that pulses while music plays */
+  content: ''; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--a3);
+  animation: ring 2s ease-out infinite;
+}
+@keyframes ring { from { transform: scale(1); opacity: 0.9; } to { transform: scale(1.5); opacity: 0; } }
+
+/* ---------- "This is an example" bar (only on /example/<occasion>) ---------- */
+.example-bar {
+  position: fixed; z-index: 40; left: 50%; transform: translateX(-50%); bottom: max(16px, env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 18px; max-width: calc(100% - 24px);
+  background: var(--text); color: var(--bg); border-radius: 999px; white-space: nowrap;
+  font-family: var(--font-ui); font-weight: 800; font-size: 0.88rem;
+  box-shadow: 0 4px 0 var(--a1), 0 12px 22px -6px rgba(0, 0, 0, 0.4);
+}
+.example-bar a { padding: 0.5rem 1rem; border-radius: 999px; background: var(--bg); color: var(--text); text-decoration: none; }
+.is-example .music-btn { bottom: 84px; }
+.is-example .pad { margin-bottom: 120px; }
+
+/* =====================  CONFETTI BURST (when opening)  ===================== */
+.burst { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+.piece {
+  position: absolute; left: var(--x); top: var(--y); width: var(--s); height: calc(var(--s) * 1.6);
+  background: var(--c); border-radius: 2px;
+  animation: burst 1.9s cubic-bezier(0.12, 0.75, 0.3, 1) forwards;
+}
+.piece.dot { height: var(--s); border-radius: 50%; }
+@keyframes burst {
+  0%   { transform: translate(0, 0) rotate(0deg) scale(0.4); opacity: 1; }
+  55%  { transform: translate(var(--dx), var(--dy)) rotate(calc(var(--rot) * 0.6)) scale(1); opacity: 1; }
+  100% { transform: translate(calc(var(--dx) * 1.15), calc(var(--dy) + 170px)) rotate(var(--rot)) scale(1); opacity: 0; }
+}
+
+/* Very long names: smaller script so they wrap at spaces, not mid-word. */
+.cover-name.long, .to-name.long, .from-name.long { font-size: clamp(2.1rem, 9.5vw, 3.1rem); overflow-wrap: break-word; }
+.cover-name.xlong, .to-name.xlong, .from-name.xlong { font-size: clamp(1.7rem, 7.5vw, 2.4rem); overflow-wrap: break-word; }
+
+/* ---------- Small screens: the card nearly fills the width ---------- */
+@media (max-width: 420px) {
+  .pad { width: calc(100% - 30px); margin-top: 22px; }
+  .surprise { padding-left: 14px; padding-right: 14px; }
+  .message { font-size: 1.5rem; }
+}
+
+/* ---------- Respect "reduce motion" ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .js .photo { opacity: 1; transform: rotate(var(--rot)); }
+  .sky, .burst { display: none; }
+  .music-btn.playing::after { display: none; }
+}
