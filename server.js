@@ -218,6 +218,10 @@ app.get('/wish/:slug', (req, res) => {
 // ---------- Error handling ----------
 // Express calls this when something above throws or calls next(error),
 // including multer errors (file too large, too many files, wrong type).
+app.get('/api/hello', (req, res) => {
+  res.json({ message: 'Hello, world!', time: new Date().toISOString() });
+});
+
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     const messages = {
