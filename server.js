@@ -103,10 +103,12 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 // Uploaded photos and videos are served from /uploads/<file>.
 app.use('/uploads', express.static(UPLOAD_DIR));
+//It's middleware again: it adds a header telling search engines "don't list this", then next() passes the request on to express.static.
+app.use('/uploads', (req, res, next) => { res.set('X-Robots-Tag', 'noindex'); next(); });
 
 // ---------- Routes ----------
 
-// Create a wish.  upload.array('media') means: "accept up to MAX_FILES files
+// Create a wish.  upload.array('media') means: "accept up to MAX_FILES files"
 // in a form field called 'media'".
 app.post('/api/wishes', upload.array('media', MAX_FILES), (req, res) => {
   const recipientName = cleanText(req.body.recipientName, 80);

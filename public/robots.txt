@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /uploads/ 
+Sitemap: https://wish-platform.onrender.com/sitemap.xml
